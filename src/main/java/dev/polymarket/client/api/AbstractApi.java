@@ -26,6 +26,8 @@ public abstract class AbstractApi {
 
     public static final String EMPTY_PATH = "";
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    public static final int READ_TIMEOUT = 30;
+    public static final int WRITE_TIMEOUT = 60;
 
     private static final Map<String, String> OVERLOAD_HEADERS_BY_NAME;
 
@@ -82,8 +84,8 @@ public abstract class AbstractApi {
 
     private static OkHttpClient createDefaultClient(List<Interceptor> interceptors) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.MILLISECONDS);
+                .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
+                .writeTimeout(WRITE_TIMEOUT, TimeUnit.MILLISECONDS);
         if (interceptors != null) {
             interceptors.forEach(builder::addInterceptor);
         }
