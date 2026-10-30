@@ -130,21 +130,21 @@ public abstract class AbstractWebSocket<SM> extends WebSocketClient {
         log.info("{} attempting reconnect in {}ms...", webSocketUrl, delay);
 
         scheduler.schedule(() -> {
+            boolean connected = false;
             try {
-                // Block inside scheduler thread, never in WS callback thread
-                reconnectBlocking();
-                log.info("{} reconnected", webSocketUrl);
+                connected = reconnectBlocking();
             } catch (Exception e) {
                 log.error("{} reconnect failed", webSocketUrl, e);
-                isReconnecting.set(false);
-                backoffMs = Math.min(config.getMaxBackoffMs(), Math.max(config.getMinBackoffMs(), backoffMs * 2));
-                scheduleReconnect();
-            } finally {
-                // Allow next reconnect attempt to be scheduled if still not open
-                if (!isOpen()) {
-                    isReconnecting.set(false);
-                }
             }
+
+            if (connected) {
+                log.info("{} reconnected", webSocketUrl);
+                return;
+            }
+
+            isReconnecting.set(false);
+            backoffMs = Math.min(config.getMaxBackoffMs(), Math.max(config.getMinBackoffMs(), backoffMs * 2));
+            scheduleReconnect();
         }, delay, TimeUnit.MILLISECONDS);
     }
 }
