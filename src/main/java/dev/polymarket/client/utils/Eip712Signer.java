@@ -35,23 +35,31 @@ public final class Eip712Signer {
             String privateKey,
             CreateAndPlaceOrderRequest.Order order
     ) {
+        return signClobPolymarketOrderTypedData(chainId, privateKey, order, false);
+    }
+
+    public static String signClobPolymarketOrderTypedData(
+            long chainId,
+            String privateKey,
+            CreateAndPlaceOrderRequest.Order order,
+            boolean negRisk
+    ) {
         Eip712Model.PolymarketClobOrder.OrderMessage orderMessage =
                 new Eip712Model.PolymarketClobOrder.OrderMessage(
                         String.valueOf(order.getSalt()),
                         order.getMaker(),
                         order.getSigner(),
-                        order.getTaker(),
                         order.getTokenId(),
                         order.getMakerAmount(),
                         order.getTakerAmount(),
-                        order.getExpiration(),
-                        order.getNonce(),
-                        order.getFeeRateBps(),
                         String.valueOf(order.getSide().getIndex()),
-                        String.valueOf(order.getSignatureType())
+                        String.valueOf(order.getSignatureType()),
+                        order.getTimestamp(),
+                        order.getMetadata(),
+                        order.getBuilder()
                 );
 
-        Object typedData = Eip712Model.PolymarketClobOrder.of(chainId, orderMessage);
+        Object typedData = Eip712Model.PolymarketClobOrder.of(chainId, negRisk, orderMessage);
         return signTypedData(typedData, privateKey);
     }
 

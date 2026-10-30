@@ -4,6 +4,7 @@ import dev.polymarket.client.dto.PolymarketContext;
 import dev.polymarket.client.enums.OrderType;
 import dev.polymarket.client.enums.TradeSide;
 import dev.polymarket.client.utils.AmountUtils;
+import dev.polymarket.client.utils.Eip712Model;
 import dev.polymarket.client.utils.Eip712Signer;
 import dev.polymarket.client.utils.OrderUtils;
 
@@ -24,6 +25,11 @@ public class UserOrderRequest {
     private final OrderType orderType;
     private final String expiration;
 
+    /**
+     * Whether the market is neg-risk (see MarketResponse.negRisk); selects the exchange contract used for signing.
+     */
+    private final boolean negRisk;
+
     // Full constructor (Primary Constructor)
     public UserOrderRequest(
             String assetId,
@@ -31,7 +37,8 @@ public class UserOrderRequest {
             BigDecimal price,
             BigDecimal size,
             OrderType orderType,
-            String expiration
+            String expiration,
+            boolean negRisk
     ) {
         // Init block validations
         if (price == null || price.compareTo(new BigDecimal("0.01")) < 0 || price.compareTo(new BigDecimal("1.0")) > 0) {
@@ -47,11 +54,29 @@ public class UserOrderRequest {
         this.size = size;
         this.orderType = orderType;
         this.expiration = expiration;
+        this.negRisk = negRisk;
+    }
+
+    // Overloaded constructor with default negRisk (false)
+    public UserOrderRequest(
+            String assetId,
+            TradeSide side,
+            BigDecimal price,
+            BigDecimal size,
+            OrderType orderType,
+            String expiration
+    ) {
+        this(assetId, side, price, size, orderType, expiration, false);
     }
 
     // Overloaded constructor with default orderType (GTC) and expiration ("0")
+    public UserOrderRequest(String assetId, TradeSide side, BigDecimal price, BigDecimal size, boolean negRisk) {
+        this(assetId, side, price, size, OrderType.GTC, "0", negRisk);
+    }
+
+    // Overloaded constructor with default orderType (GTC), expiration ("0") and negRisk (false)
     public UserOrderRequest(String assetId, TradeSide side, BigDecimal price, BigDecimal size) {
-        this(assetId, side, price, size, OrderType.GTC, "0");
+        this(assetId, side, price, size, false);
     }
 
     /**
@@ -90,21 +115,22 @@ public class UserOrderRequest {
                 OrderUtils.generateOrderSalt(),
                 context.getFunderAddress(),
                 context.getAddress(),
-                "0x0000000000000000000000000000000000000000", // Default taker
                 this.assetId,
                 AmountUtils.parseUnits(amounts.getRawMakerAmt()),
                 AmountUtils.parseUnits(amounts.getRawTakerAmt()),
-                this.expiration,
-                String.valueOf(context.getNonce()),
-                "0", // Default feeRateBps
                 this.side,
+                this.expiration,
                 context.getSignatureType().getIndex(),
+                String.valueOf(System.currentTimeMillis()), // timestamp
+                Eip712Model.BYTES32_ZERO, // Default metadata
+                Eip712Model.BYTES32_ZERO, // Default builder
                 "" // Signature starts empty
         );
 
         // Construct outer envelope wrapper
         CreateAndPlaceOrderRequest request = new CreateAndPlaceOrderRequest(
                 false, // default deferExec value
+                false, // default postOnly value
                 rawOrder,
                 owner,
                 this.orderType
@@ -114,7 +140,8 @@ public class UserOrderRequest {
         String signature = Eip712Signer.signClobPolymarketOrderTypedData(
                 context.getChainId(),
                 context.getPrivateKey(),
-                rawOrder
+                rawOrder,
+                this.negRisk
         );
         rawOrder.setSignature(signature);
 
@@ -129,4 +156,5 @@ public class UserOrderRequest {
     public BigDecimal getSize() { return size; }
     public OrderType getOrderType() { return orderType; }
     public String getExpiration() { return expiration; }
+    public boolean isNegRisk() { return negRisk; }
 }
