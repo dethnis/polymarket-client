@@ -84,6 +84,8 @@ public abstract class AbstractApi {
 
     private static OkHttpClient createDefaultClient(List<Interceptor> interceptors) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                // .connectTimeout(, TimeUnit.MILLISECONDS)
+                // .callTimeout(, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
                 .writeTimeout(WRITE_TIMEOUT, TimeUnit.MILLISECONDS);
         if (interceptors != null) {
