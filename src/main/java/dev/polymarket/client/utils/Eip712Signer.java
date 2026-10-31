@@ -84,8 +84,8 @@ public final class Eip712Signer {
             System.arraycopy(signature.getV(), 0, retval, 64, 1);
 
             return Numeric.toHexString(retval);
-        } catch (IOException e) {
-            // Includes web3j's own (Jackson 2) parsing of the typed data JSON
+        } catch (IOException | JacksonException e) {
+            // web3j 6 parses the typed data JSON with Jackson 3, which throws unchecked JacksonException
             throw new RuntimeException("Failed to signTypedData", e);
         }
     }

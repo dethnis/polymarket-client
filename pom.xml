@@ -19,17 +19,24 @@
         <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
         <junit.version>5.13.4</junit.version>
         <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
+        <web3j.version>6.0.0</web3j.version>
+        <jackson.version>3.1.0</jackson.version>
+        <jackson.annotations.version>2.21</jackson.annotations.version>
+        <netty.version>4.1.115.Final</netty.version>
+        <java-websocket.version>1.5.6</java-websocket.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <okio.version>3.17.0</okio.version>
     </properties>
 
     <dependencies>
 
-        <!-- Source: https://mvnrepository.com/artifact/io.netty/netty-all -->
-<!--        <dependency>-->
-<!--            <groupId>io.netty</groupId>-->
-<!--            <artifactId>netty-all</artifactId>-->
-<!--            <version>4.2.16.Final</version>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
+        <!-- HttpResponseStatus (ApiException) and HttpHeaderNames (AbstractApi) -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- Source: https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
         <dependency>
@@ -54,20 +61,62 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/org.web3j/core
-        6.0.0
-        4.14.0
-        -->
+        <!-- OkHttp's buffer type, used to read request bodies in AuthL2Interceptor -->
+        <dependency>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio-jvm</artifactId>
+            <version>${okio.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Only EIP-712 signing (Sign, Credentials) and Numeric are used, not the full web3j core -->
         <dependency>
             <groupId>org.web3j</groupId>
-            <artifactId>core</artifactId>
-            <version>6.0.0</version>
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>io.netty</groupId>-->
-<!--                    <artifactId>*</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
+            <artifactId>crypto</artifactId>
+            <version>${web3j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>utils</artifactId>
+            <version>${web3j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Jackson 3 (same major version web3j 6 uses); annotations are still the Jackson 2 artifact -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.annotations.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>${java-websocket.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
             <scope>compile</scope>
         </dependency>
 
