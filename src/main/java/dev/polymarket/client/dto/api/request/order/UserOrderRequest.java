@@ -2,6 +2,7 @@ package dev.polymarket.client.dto.api.request.order;
 
 import dev.polymarket.client.dto.PolymarketContext;
 import dev.polymarket.client.enums.OrderType;
+import dev.polymarket.client.enums.TickSize;
 import dev.polymarket.client.enums.TradeSide;
 import dev.polymarket.client.utils.AmountUtils;
 import dev.polymarket.client.utils.Eip712Model;
@@ -26,6 +27,11 @@ public class UserOrderRequest {
     private final String expiration;
 
     /**
+     * Market tick size (see MarketResponse.orderPriceMinTickSize); sets the valid price range and amount rounding.
+     */
+    private final TickSize tickSize;
+
+    /**
      * Whether the market is neg-risk (see MarketResponse.negRisk); selects the exchange contract used for signing.
      */
     private final boolean negRisk;
@@ -38,11 +44,16 @@ public class UserOrderRequest {
             BigDecimal size,
             OrderType orderType,
             String expiration,
+            TickSize tickSize,
             boolean negRisk
     ) {
         // Init block validations
-        if (price == null || price.compareTo(new BigDecimal("0.01")) < 0 || price.compareTo(new BigDecimal("1.0")) > 0) {
-            throw new IllegalArgumentException("Price must be in range 0.01 to 1.0, but was " + price);
+        if (tickSize == null) {
+            throw new IllegalArgumentException("Tick size must not be null");
+        }
+        if (!tickSize.isValidPrice(price)) {
+            throw new IllegalArgumentException("Price must be in range " + tickSize.getValue() + " to "
+                    + BigDecimal.ONE.subtract(tickSize.getValue()) + ", but was " + price);
         }
         if (size == null || size.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Size must be positive, but was " + size);
@@ -54,7 +65,21 @@ public class UserOrderRequest {
         this.size = size;
         this.orderType = orderType;
         this.expiration = expiration;
+        this.tickSize = tickSize;
         this.negRisk = negRisk;
+    }
+
+    // Overloaded constructor with default tickSize (0.01)
+    public UserOrderRequest(
+            String assetId,
+            TradeSide side,
+            BigDecimal price,
+            BigDecimal size,
+            OrderType orderType,
+            String expiration,
+            boolean negRisk
+    ) {
+        this(assetId, side, price, size, orderType, expiration, TickSize.TICK_0_01, negRisk);
     }
 
     // Overloaded constructor with default negRisk (false)
@@ -70,8 +95,20 @@ public class UserOrderRequest {
     }
 
     // Overloaded constructor with default orderType (GTC) and expiration ("0")
+    public UserOrderRequest(
+            String assetId,
+            TradeSide side,
+            BigDecimal price,
+            BigDecimal size,
+            TickSize tickSize,
+            boolean negRisk
+    ) {
+        this(assetId, side, price, size, OrderType.GTC, "0", tickSize, negRisk);
+    }
+
+    // Overloaded constructor with default orderType (GTC), expiration ("0") and tickSize (0.01)
     public UserOrderRequest(String assetId, TradeSide side, BigDecimal price, BigDecimal size, boolean negRisk) {
-        this(assetId, side, price, size, OrderType.GTC, "0", negRisk);
+        this(assetId, side, price, size, TickSize.TICK_0_01, negRisk);
     }
 
     // Overloaded constructor with default orderType (GTC), expiration ("0") and negRisk (false)
@@ -108,7 +145,7 @@ public class UserOrderRequest {
         }
 
         // Calculate raw amounts
-        var amounts = OrderUtils.getOrderRawAmounts(this.side, this.size, this.price);
+        var amounts = OrderUtils.getOrderRawAmounts(this.side, this.size, this.price, this.tickSize);
 
         // Instantiate internal Order sub-structure
         CreateAndPlaceOrderRequest.Order rawOrder = new CreateAndPlaceOrderRequest.Order(
@@ -156,5 +193,6 @@ public class UserOrderRequest {
     public BigDecimal getSize() { return size; }
     public OrderType getOrderType() { return orderType; }
     public String getExpiration() { return expiration; }
+    public TickSize getTickSize() { return tickSize; }
     public boolean isNegRisk() { return negRisk; }
 }

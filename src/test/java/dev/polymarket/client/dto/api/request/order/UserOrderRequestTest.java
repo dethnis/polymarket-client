@@ -3,6 +3,7 @@ package dev.polymarket.client.dto.api.request.order;
 import dev.polymarket.client.dto.PolymarketContext;
 import dev.polymarket.client.enums.OrderType;
 import dev.polymarket.client.enums.SignatureType;
+import dev.polymarket.client.enums.TickSize;
 import dev.polymarket.client.enums.TradeSide;
 import dev.polymarket.client.utils.Eip712Model;
 import dev.polymarket.client.utils.Eip712Signer;
@@ -120,7 +121,44 @@ class UserOrderRequestTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.001"), BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
+                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("1.0"), BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class,
                 () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("1.01"), BigDecimal.ONE));
+    }
+
+    @Test
+    void priceRangeFollowsTickSize() {
+        BigDecimal price = new BigDecimal("0.999");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, price, BigDecimal.ONE, TickSize.TICK_0_01, false));
+        assertEquals(TickSize.TICK_0_001,
+                new UserOrderRequest(ASSET_ID, TradeSide.BUY, price, BigDecimal.ONE, TickSize.TICK_0_001, false)
+                        .getTickSize());
+    }
+
+    @Test
+    void rejectsMissingTickSize() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ONE, null, false));
+    }
+
+    @Test
+    void roundsAmountsForMarketTickSize() {
+        CreateAndPlaceOrderRequest.Order order =
+                new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.123"), new BigDecimal("10"),
+                        TickSize.TICK_0_001, false)
+                        .toCreateAndPlaceOrderRequest(OWNER, CONTEXT)
+                        .getOrder();
+
+        assertEquals("1230000", order.getMakerAmount());
+        assertEquals("10000000", order.getTakerAmount());
+    }
+
+    @Test
+    void defaultsToTickSize001() {
+        assertEquals(TickSize.TICK_0_01,
+                new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5")).getTickSize());
     }
 
     @Test

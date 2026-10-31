@@ -1,6 +1,7 @@
 package dev.polymarket.client.utils;
 
 
+import dev.polymarket.client.enums.TickSize;
 import dev.polymarket.client.enums.TradeSide;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -24,15 +25,6 @@ public final class OrderUtils {
     }
 
     /**
-     * For tick size 0.01
-     */
-    private static final class RoundConfig {
-        public static final int PRICE = 2;
-        public static final int SIZE = 2;
-        public static final int AMOUNT = 4;
-    }
-
-    /**
      * Generates a unique salt for order creation.
      * Must be a positive long value to match EIP712 uint256 type.
      */
@@ -48,35 +40,48 @@ public final class OrderUtils {
         return Math.abs(ThreadLocalRandom.current().nextLong(min, max));
     }
 
+    /**
+     * Overload for markets with the default tick size 0.01.
+     */
     public static OrderRawAmounts getOrderRawAmounts(
             TradeSide side,
             BigDecimal size,
             BigDecimal price
     ) {
-        BigDecimal rawPrice = roundNormal(price, RoundConfig.PRICE);
+        return getOrderRawAmounts(side, size, price, TickSize.TICK_0_01);
+    }
+
+    public static OrderRawAmounts getOrderRawAmounts(
+            TradeSide side,
+            BigDecimal size,
+            BigDecimal price,
+            TickSize tickSize
+    ) {
+        int amountDecimals = tickSize.getAmountDecimals();
+        BigDecimal rawPrice = roundNormal(price, tickSize.getPriceDecimals());
 
         switch (side) {
             case BUY: {
-                BigDecimal rawTakerAmt = roundDown(size, RoundConfig.SIZE);
+                BigDecimal rawTakerAmt = roundDown(size, tickSize.getSizeDecimals());
                 BigDecimal rawMakerAmt = rawTakerAmt.multiply(rawPrice);
 
-                if (decimalPlaces(rawMakerAmt) > RoundConfig.AMOUNT) {
-                    rawMakerAmt = roundUp(rawMakerAmt, RoundConfig.AMOUNT + 4);
-                    if (decimalPlaces(rawMakerAmt) > RoundConfig.AMOUNT) {
-                        rawMakerAmt = roundDown(rawMakerAmt, RoundConfig.AMOUNT);
+                if (decimalPlaces(rawMakerAmt) > amountDecimals) {
+                    rawMakerAmt = roundUp(rawMakerAmt, amountDecimals + 4);
+                    if (decimalPlaces(rawMakerAmt) > amountDecimals) {
+                        rawMakerAmt = roundDown(rawMakerAmt, amountDecimals);
                     }
                 }
                 return new OrderRawAmounts(rawMakerAmt, rawTakerAmt);
             }
 
             case SELL: {
-                BigDecimal rawMakerAmt = roundDown(size, RoundConfig.SIZE);
+                BigDecimal rawMakerAmt = roundDown(size, tickSize.getSizeDecimals());
                 BigDecimal rawTakerAmt = rawMakerAmt.multiply(rawPrice);
 
-                if (decimalPlaces(rawTakerAmt) > RoundConfig.AMOUNT) {
-                    rawTakerAmt = roundUp(rawTakerAmt, RoundConfig.AMOUNT + 4);
-                    if (decimalPlaces(rawTakerAmt) > RoundConfig.AMOUNT) {
-                        rawTakerAmt = roundDown(rawTakerAmt, RoundConfig.AMOUNT);
+                if (decimalPlaces(rawTakerAmt) > amountDecimals) {
+                    rawTakerAmt = roundUp(rawTakerAmt, amountDecimals + 4);
+                    if (decimalPlaces(rawTakerAmt) > amountDecimals) {
+                        rawTakerAmt = roundDown(rawTakerAmt, amountDecimals);
                     }
                 }
                 return new OrderRawAmounts(rawMakerAmt, rawTakerAmt);
