@@ -1,10 +1,10 @@
 package dev.polymarket.client.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import dev.polymarket.client.dto.api.request.order.CreateAndPlaceOrderRequest;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Sign;
 import org.web3j.utils.Numeric;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -64,8 +64,15 @@ public final class Eip712Signer {
     }
 
     private static <T> String signTypedData(T typedData, String privateKey) {
+        String jsonData;
         try {
-            String jsonData = objectMapper.writeValueAsString(typedData);
+            jsonData = objectMapper.writeValueAsString(typedData);
+        } catch (JacksonException e) {
+            // Jackson 3 throws unchecked JacksonException instead of JsonProcessingException
+            throw new RuntimeException("Failed to serialize typed data to JSON", e);
+        }
+
+        try {
             Sign.SignatureData signature = Sign.signTypedData(
                     jsonData,
                     Credentials.create(privateKey).getEcKeyPair()
@@ -77,9 +84,8 @@ public final class Eip712Signer {
             System.arraycopy(signature.getV(), 0, retval, 64, 1);
 
             return Numeric.toHexString(retval);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize typed data to JSON", e);
         } catch (IOException e) {
+            // Includes web3j's own (Jackson 2) parsing of the typed data JSON
             throw new RuntimeException("Failed to signTypedData", e);
         }
     }
