@@ -1,4 +1,4 @@
-package dev.polymarket.client.api.clob;
+package dev.polymarket.client.api.clob.auth;
 
 import dev.polymarket.client.api.AbstractApi;
 import dev.polymarket.client.api.interceptor.AuthL2Interceptor;

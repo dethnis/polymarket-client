@@ -1,12 +1,12 @@
-package dev.polymarket.client.api.clob;
+package dev.polymarket.client.api.clob.auth;
 
 import dev.polymarket.client.api.AbstractApi;
 import dev.polymarket.client.api.interceptor.AuthL2Interceptor;
 import dev.polymarket.client.dto.PolymarketContext;
-import dev.polymarket.client.dto.api.response.order.CancelOrderResponse;
-import dev.polymarket.client.dto.api.response.order.CreateAndPlaceOrderResponse;
-import dev.polymarket.client.dto.api.request.order.CancelOrderRequest;
-import dev.polymarket.client.dto.api.request.order.UserOrderRequest;
+import dev.polymarket.client.dto.api.response.clob.order.CancelOrderResponse;
+import dev.polymarket.client.dto.api.response.clob.order.CreateAndPlaceOrderResponse;
+import dev.polymarket.client.dto.api.request.clob.order.CancelOrderRequest;
+import dev.polymarket.client.dto.api.request.clob.order.UserOrderRequest;
 import dev.polymarket.client.enums.system.SystemEnv;
 
 import java.util.Collections;

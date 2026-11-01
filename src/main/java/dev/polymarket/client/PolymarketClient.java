@@ -1,8 +1,9 @@
 package dev.polymarket.client;
 
-import dev.polymarket.client.api.clob.AuthL1Api;
-import dev.polymarket.client.api.clob.AuthL2Api;
-import dev.polymarket.client.api.clob.OrderApi;
+import dev.polymarket.client.api.clob.auth.AuthL1Api;
+import dev.polymarket.client.api.clob.auth.AuthL2Api;
+import dev.polymarket.client.api.clob.ClobMarketApi;
+import dev.polymarket.client.api.clob.auth.OrderApi;
 import dev.polymarket.client.api.gamma.MarketsApi;
 import dev.polymarket.client.api.interceptor.AuthL1Interceptor;
 import dev.polymarket.client.api.interceptor.AuthL2Interceptor;
@@ -159,13 +160,19 @@ public class PolymarketClient {
      */
     public class PublicApi {
         private final MarketsApi marketsApi;
+        private final ClobMarketApi clobMarketApi;
 
         public PublicApi() {
             this.marketsApi = new MarketsApi();
+            this.clobMarketApi = new ClobMarketApi();
         }
 
         public MarketsApi getMarketsApi() {
             return marketsApi;
+        }
+
+        public ClobMarketApi getClobMarketApi() {
+            return clobMarketApi;
         }
     }
 }

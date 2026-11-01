@@ -1,6 +1,7 @@
-package dev.polymarket.client.dto.api.request.order;
+package dev.polymarket.client.dto.api.request.clob.order;
 
 import dev.polymarket.client.dto.PolymarketContext;
+import dev.polymarket.client.dto.api.response.gamma.MarketResponse;
 import dev.polymarket.client.enums.OrderType;
 import dev.polymarket.client.enums.TickSize;
 import dev.polymarket.client.enums.TradeSide;
@@ -69,32 +70,9 @@ public class UserOrderRequest {
         this.negRisk = negRisk;
     }
 
-    // Overloaded constructor with default tickSize (0.01)
-    public UserOrderRequest(
-            String assetId,
-            TradeSide side,
-            BigDecimal price,
-            BigDecimal size,
-            OrderType orderType,
-            String expiration,
-            boolean negRisk
-    ) {
-        this(assetId, side, price, size, orderType, expiration, TickSize.TICK_0_01, negRisk);
-    }
-
-    // Overloaded constructor with default negRisk (false)
-    public UserOrderRequest(
-            String assetId,
-            TradeSide side,
-            BigDecimal price,
-            BigDecimal size,
-            OrderType orderType,
-            String expiration
-    ) {
-        this(assetId, side, price, size, orderType, expiration, false);
-    }
-
-    // Overloaded constructor with default orderType (GTC) and expiration ("0")
+    // Overloaded constructor with default orderType (GTC) and expiration ("0").
+    // There are deliberately no defaults for tickSize and negRisk: a wrong guess mis-rounds the price
+    // or gets the order rejected, so they must come from market data.
     public UserOrderRequest(
             String assetId,
             TradeSide side,
@@ -106,14 +84,44 @@ public class UserOrderRequest {
         this(assetId, side, price, size, OrderType.GTC, "0", tickSize, negRisk);
     }
 
-    // Overloaded constructor with default orderType (GTC), expiration ("0") and tickSize (0.01)
-    public UserOrderRequest(String assetId, TradeSide side, BigDecimal price, BigDecimal size, boolean negRisk) {
-        this(assetId, side, price, size, TickSize.TICK_0_01, negRisk);
+    /**
+     * Creates an order for one outcome of a Gamma market, taking tick size and neg-risk from the market data.
+     * No network call.
+     *
+     * @throws IllegalArgumentException if the asset is not one of the market's tokens, or the market data
+     *                                  lacks orderPriceMinTickSize or negRisk.
+     */
+    public static UserOrderRequest forMarket(
+            MarketResponse market,
+            String assetId,
+            TradeSide side,
+            BigDecimal price,
+            BigDecimal size,
+            OrderType orderType,
+            String expiration
+    ) {
+        if (market.getClobTokenIds() == null || !market.getClobTokenIds().contains(assetId)) {
+            throw new IllegalArgumentException("Asset " + assetId + " is not a token of market " + market.getSlug());
+        }
+        if (market.getOrderPriceMinTickSize() == null) {
+            throw new IllegalArgumentException("Market " + market.getSlug() + " has no orderPriceMinTickSize");
+        }
+        if (market.getNegRisk() == null) {
+            throw new IllegalArgumentException("Market " + market.getSlug() + " has no negRisk flag");
+        }
+        return new UserOrderRequest(assetId, side, price, size, orderType, expiration,
+                TickSize.of(market.getOrderPriceMinTickSize()), market.getNegRisk());
     }
 
-    // Overloaded constructor with default orderType (GTC), expiration ("0") and negRisk (false)
-    public UserOrderRequest(String assetId, TradeSide side, BigDecimal price, BigDecimal size) {
-        this(assetId, side, price, size, false);
+    // Overloaded factory with default orderType (GTC) and expiration ("0")
+    public static UserOrderRequest forMarket(
+            MarketResponse market,
+            String assetId,
+            TradeSide side,
+            BigDecimal price,
+            BigDecimal size
+    ) {
+        return forMarket(market, assetId, side, price, size, OrderType.GTC, "0");
     }
 
     /**

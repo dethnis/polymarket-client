@@ -1,4 +1,4 @@
-package dev.polymarket.client.dto.api.request.order;
+package dev.polymarket.client.dto.api.request.clob.order;
 
 import dev.polymarket.client.enums.OrderType;
 import dev.polymarket.client.enums.TradeSide;

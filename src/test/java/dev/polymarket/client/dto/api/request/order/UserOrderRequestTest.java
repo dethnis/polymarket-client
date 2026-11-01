@@ -1,6 +1,9 @@
 package dev.polymarket.client.dto.api.request.order;
 
 import dev.polymarket.client.dto.PolymarketContext;
+import dev.polymarket.client.dto.api.request.clob.order.CreateAndPlaceOrderRequest;
+import dev.polymarket.client.dto.api.request.clob.order.UserOrderRequest;
+import dev.polymarket.client.dto.api.response.gamma.MarketResponse;
 import dev.polymarket.client.enums.OrderType;
 import dev.polymarket.client.enums.SignatureType;
 import dev.polymarket.client.enums.TickSize;
@@ -35,7 +38,8 @@ class UserOrderRequestTest {
             new PolymarketContext(137, SIGNER, PRIVATE_KEY, 0, FUNDER, SignatureType.POLY_GNOSIS_SAFE);
 
     private static CreateAndPlaceOrderRequest buyRequest(boolean negRisk) {
-        return new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5"), negRisk)
+        return new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5"),
+                TickSize.TICK_0_01, negRisk)
                 .toCreateAndPlaceOrderRequest(OWNER, CONTEXT);
     }
 
@@ -73,7 +77,8 @@ class UserOrderRequestTest {
     @Test
     void sellOrderSwapsMakerAndTakerAmounts() {
         CreateAndPlaceOrderRequest.Order order =
-                new UserOrderRequest(ASSET_ID, TradeSide.SELL, new BigDecimal("0.3"), new BigDecimal("5"))
+                new UserOrderRequest(ASSET_ID, TradeSide.SELL, new BigDecimal("0.3"), new BigDecimal("5"),
+                        TickSize.TICK_0_01, false)
                         .toCreateAndPlaceOrderRequest(OWNER, CONTEXT)
                         .getOrder();
 
@@ -118,12 +123,12 @@ class UserOrderRequestTest {
 
     @Test
     void rejectsPriceOutOfRange() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.001"), BigDecimal.ONE));
-        assertThrows(IllegalArgumentException.class,
-                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("1.0"), BigDecimal.ONE));
-        assertThrows(IllegalArgumentException.class,
-                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("1.01"), BigDecimal.ONE));
+        for (String price : new String[]{"0.001", "1.0", "1.01"}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal(price), BigDecimal.ONE,
+                            TickSize.TICK_0_01, false),
+                    price);
+        }
     }
 
     @Test
@@ -155,16 +160,63 @@ class UserOrderRequestTest {
         assertEquals("10000000", order.getTakerAmount());
     }
 
+    private static MarketResponse market(String tickSize, Boolean negRisk) {
+        MarketResponse market = new MarketResponse();
+        market.setSlug("test-market");
+        market.setClobTokenIds("[\"" + ASSET_ID + "\", \"456\"]");
+        market.setOrderPriceMinTickSize(tickSize != null ? new BigDecimal(tickSize) : null);
+        market.setNegRisk(negRisk);
+        return market;
+    }
+
     @Test
-    void defaultsToTickSize001() {
-        assertEquals(TickSize.TICK_0_01,
-                new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5")).getTickSize());
+    void forMarketTakesTickSizeAndNegRiskFromMarketData() {
+        UserOrderRequest request = UserOrderRequest.forMarket(
+                market("0.001", true), ASSET_ID, TradeSide.BUY, new BigDecimal("0.123"), BigDecimal.TEN);
+
+        assertAll(
+                () -> assertEquals(TickSize.TICK_0_001, request.getTickSize()),
+                () -> assertTrue(request.isNegRisk()),
+                () -> assertEquals(ASSET_ID, request.getAssetId()),
+                () -> assertEquals(OrderType.GTC, request.getOrderType()),
+                () -> assertEquals("0", request.getExpiration())
+        );
+    }
+
+    @Test
+    void forMarketKeepsOrderTypeAndExpiration() {
+        UserOrderRequest request = UserOrderRequest.forMarket(market("0.01", false), ASSET_ID, TradeSide.SELL,
+                new BigDecimal("0.5"), BigDecimal.ONE, OrderType.GTD, "1900000000");
+
+        assertEquals(OrderType.GTD, request.getOrderType());
+        assertEquals("1900000000", request.getExpiration());
+    }
+
+    @Test
+    void forMarketValidatesPriceAgainstMarketTickSize() {
+        assertThrows(IllegalArgumentException.class, () -> UserOrderRequest.forMarket(
+                market("0.01", false), ASSET_ID, TradeSide.BUY, new BigDecimal("0.999"), BigDecimal.ONE));
+    }
+
+    @Test
+    void forMarketRejectsTokenOfAnotherMarket() {
+        assertThrows(IllegalArgumentException.class, () -> UserOrderRequest.forMarket(
+                market("0.01", false), "999", TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ONE));
+    }
+
+    @Test
+    void forMarketRejectsIncompleteMarketData() {
+        assertThrows(IllegalArgumentException.class, () -> UserOrderRequest.forMarket(
+                market(null, false), ASSET_ID, TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class, () -> UserOrderRequest.forMarket(
+                market("0.01", null), ASSET_ID, TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ONE));
     }
 
     @Test
     void rejectsNonPositiveSize() {
         assertThrows(IllegalArgumentException.class,
-                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ZERO));
+                () -> new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.5"), BigDecimal.ZERO,
+                        TickSize.TICK_0_01, false));
     }
 
     @Test
@@ -172,7 +224,8 @@ class UserOrderRequestTest {
         PolymarketContext noFunder =
                 new PolymarketContext(137, SIGNER, PRIVATE_KEY, 0, "", SignatureType.POLY_GNOSIS_SAFE);
         UserOrderRequest request =
-                new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5"));
+                new UserOrderRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("0.3"), new BigDecimal("5"),
+                        TickSize.TICK_0_01, false);
 
         assertThrows(IllegalArgumentException.class, () -> request.toCreateAndPlaceOrderRequest(OWNER, noFunder));
     }

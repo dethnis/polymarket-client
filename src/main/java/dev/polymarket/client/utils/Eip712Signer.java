@@ -1,6 +1,6 @@
 package dev.polymarket.client.utils;
 
-import dev.polymarket.client.dto.api.request.order.CreateAndPlaceOrderRequest;
+import dev.polymarket.client.dto.api.request.clob.order.CreateAndPlaceOrderRequest;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Sign;
 import org.web3j.utils.Numeric;

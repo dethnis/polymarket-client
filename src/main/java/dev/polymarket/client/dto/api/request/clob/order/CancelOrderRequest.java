@@ -1,4 +1,4 @@
-package dev.polymarket.client.dto.api.request.order;
+package dev.polymarket.client.dto.api.request.clob.order;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

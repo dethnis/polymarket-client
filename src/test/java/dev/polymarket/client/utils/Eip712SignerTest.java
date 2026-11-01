@@ -1,6 +1,6 @@
 package dev.polymarket.client.utils;
 
-import dev.polymarket.client.dto.api.request.order.CreateAndPlaceOrderRequest;
+import dev.polymarket.client.dto.api.request.clob.order.CreateAndPlaceOrderRequest;
 import dev.polymarket.client.enums.TradeSide;
 import org.junit.jupiter.api.Test;
 
